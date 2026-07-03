@@ -12,13 +12,20 @@ export class AssetStore {
 
   async loadFromManifest(manifest) {
     const entries = Object.entries(manifest || {});
-    const loadOne = (path) =>
-      new Promise((resolve) => {
-        const img = new Image();
-        img.onload = () => resolve(img);
-        img.onerror = () => resolve(null);
-        img.src = path;
-      });
+    // Dedupe theo path: nhiều key trỏ CÙNG file (vd bg_river/waterfall/ui_water_fill
+    // cùng water.png) chỉ decode 1 HTMLImageElement — tiết kiệm RAM bitmap + patternCache
+    const byPath = new Map(); // path -> Promise<Image|null>
+    const loadOne = (path) => {
+      if (!byPath.has(path)) {
+        byPath.set(path, new Promise((resolve) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = () => resolve(null);
+          img.src = path;
+        }));
+      }
+      return byPath.get(path);
+    };
     await Promise.all(
       entries.map(async ([key, value]) => {
         if (Array.isArray(value)) {

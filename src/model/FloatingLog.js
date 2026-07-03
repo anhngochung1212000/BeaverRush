@@ -4,11 +4,12 @@
 let _nextId = 1;
 
 export class FloatingLog {
-  constructor({ lane, y, speedPx }) {
+  constructor({ lane, y }) {
     this.id = _nextId++;   // uid
     this.lane = lane;      // 0..4 (thả từ kho: random)
     this.y = y;            // px hệ sông (tâm log), spawn tại spawnY rồi trôi xuống
-    this.speedPx = speedPx; // px/giây khi DRIFTING
+    // M3.1: KHÔNG còn speedPx per-log — vận tốc là THUỘC TÍNH CỦA SÔNG
+    // (world.driftSpeedPx, suy từ drift.travelSec — WaterSystem), gỗ giữa sông tăng tốc theo
     this.alive = true;     // false khi trôi lọt xuống thác (mất) HOẶC đã neo (convert Block)
   }
 }

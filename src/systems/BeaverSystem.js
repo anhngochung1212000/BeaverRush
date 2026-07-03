@@ -4,6 +4,7 @@
 // GIỮ carrying; path đứt -> re-path / hủy. Cuối tick: tính GREEN CELLS (§A4.3).
 import { Block } from '../model/Block.js';
 import { cellKey } from '../model/Grid.js';
+import { Sfx, SfxEvent } from '../core/Sfx.js';
 
 const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 
@@ -55,7 +56,9 @@ export class BeaverSystem {
       if (beaver.carrying !== null) return false;
       const id = g.blockIdAt(col, row);
       if (id === null || id !== cmd.blockId) return false;                 // target biến mất
-      if (beaver.cell.col === col && beaver.cell.row === row) return false; // block đang đứng
+      // v3.2: FETCH block ĐANG ĐỨNG hợp lệ — pathToAdjacent trả path NÉ sang block kề
+      // (không có block kề -> path null, _startCommand tự bỏ lệnh); _crawl re-validate
+      // chạy khi hải ly còn trên ô target nên KHÔNG được reject own-cell ở đây.
       return true;
     }
     if (cmd.kind === 'PLACE') {
@@ -133,6 +136,8 @@ export class BeaverSystem {
       if (slot && slot.filled && block && block.onBlueprint) slot.filled = false; // X giảm 1
       if (block) block.onBlueprint = false;
       beaver.carrying = 'log';
+      world.effects.push({ type: 'pop', col, row, t: 0.35 }); // M5
+      Sfx.play(SfxEvent.PICKUP);
     }
     this._toIdle(beaver);
   }
@@ -152,6 +157,11 @@ export class BeaverSystem {
         slot.filled = true;
         block.onBlueprint = true;
         world.effects.push({ type: 'glow', col, row, t: 0.8 });
+        world.effects.push({ type: 'burst', col, row, t: 0.8 }); // M5: đặt TRÚNG slot nổi bật
+        Sfx.play(SfxEvent.SLOT_FILL);
+      } else {
+        world.effects.push({ type: 'pop', col, row, t: 0.35 }); // M5: tường tạm
+        Sfx.play(SfxEvent.PLACE_WALL);
       }
       beaver.carrying = null;
     }

@@ -1,9 +1,16 @@
 // render/layers/ui.js — Layer 10: UI CỐ ĐỊNH (không pan — vẽ sau ctx.restore §A7.1):
-// tiến độ X/Y, thanh mực nước (tĩnh M2), NÚT KHO GỖ (icon + count, tap thả gỗ §A4.1,
-// disable khi count == 0), feedback busy/reject, overlay WIN/LOSE.
-import { CANVAS_W, CANVAS_H, UI_WOOD_BUTTON } from '../../core/constants.js';
+// tiến độ X/Y, thanh mực nước (dâng M3), NÚT KHO GỖ (icon + count, tap thả gỗ §A4.1,
+// disable khi count == 0), feedback busy/reject, overlay WIN/LOSE + nút Chơi lại/Màn tiếp (M3).
+import {
+  CANVAS_W,
+  CANVAS_H,
+  UI_WOOD_BUTTON,
+  UI_END_PANEL,
+  UI_END_BUTTONS,
+  RIVER_FLOW_PX_PER_SEC,
+} from '../../core/constants.js';
 import { State } from '../../core/StateMachine.js';
-import { drawSprite } from '../drawSprite.js';
+import { drawSprite, drawTiledSprite } from '../drawSprite.js';
 
 export function drawUI(ctx, store, game) {
   const world = game.world;
@@ -48,8 +55,23 @@ export function drawUI(ctx, store, game) {
   }
   const frac = Math.max(0, Math.min(1, w.current / w.max));
   const fillH = bh * frac;
-  ctx.fillStyle = '#3f8db0';
-  ctx.fillRect(bx + 2, by + bh - fillH, bw - 4, fillH);
+  // M5: pulse cảnh báo khi nước gần đầy (>= 80%) — viền đỏ thở theo world.time
+  if (frac >= 0.8) {
+    const pulse = 0.45 + 0.45 * Math.sin(world.time * 6);
+    ctx.strokeStyle = `rgba(220,60,40,${pulse})`;
+    ctx.lineWidth = 6;
+    ctx.strokeRect(bx - 3, by - 3, bw + 6, bh + 6);
+  }
+  // Fill = texture nước dùng chung (key ui_water_fill), cuộn theo flowTime (M3).
+  // Tint đậm + vạch mặt nước để fill KHÔNG hoà lẫn nền sông (cùng texture) phía sau.
+  if (fillH > 0) {
+    drawTiledSprite(ctx, store, 'ui_water_fill', bx + 2, by + bh - fillH, bw - 4, fillH,
+      undefined, (world.flowTime ?? 0) * RIVER_FLOW_PX_PER_SEC);
+    ctx.fillStyle = 'rgba(23,74,124,0.45)';
+    ctx.fillRect(bx + 2, by + bh - fillH, bw - 4, fillH);
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.fillRect(bx + 2, by + bh - fillH, bw - 4, Math.min(3, fillH)); // clamp: fillH < 3 không tràn đáy bar
+  }
   ctx.fillStyle = 'rgba(255,255,255,0.8)';
   ctx.font = '22px sans-serif';
   ctx.fillText('WATER', bx - 4, by - 14);
@@ -119,36 +141,55 @@ export function drawUI(ctx, store, game) {
   ctx.font = '26px sans-serif';
   ctx.fillText(world.levelData.name, 24, 180);
 
-  // --- Overlay WIN / LOSE (panel_win / panel_lose §C7) ---
+  // --- Overlay WIN / LOSE (panel_win / panel_lose §C7) + nút Chơi lại / Màn tiếp (M3) ---
   if (game.sm.is(State.WIN) || game.sm.is(State.LOSE)) {
     const isWin = game.sm.is(State.WIN);
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
     ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-    const ow = 640;
-    const oh = 360;
-    const ox = (CANVAS_W - ow) / 2;
-    const oy = (CANVAS_H - oh) / 2;
+    const pn = UI_END_PANEL;
     const key = isWin ? 'panel_win' : 'panel_lose';
     if (store.has(key)) {
-      drawSprite(ctx, store, key, ox, oy, ow, oh);
+      drawSprite(ctx, store, key, pn.x, pn.y, pn.w, pn.h);
     } else {
       ctx.fillStyle = 'rgba(255,255,255,0.95)';
-      roundRect(ctx, ox, oy, ow, oh, 24);
+      roundRect(ctx, pn.x, pn.y, pn.w, pn.h, 24);
       ctx.fill();
     }
     ctx.textAlign = 'center';
     ctx.fillStyle = isWin ? '#2e7d32' : '#b03030';
     ctx.font = 'bold 96px sans-serif';
-    ctx.fillText(isWin ? 'WIN' : 'LOSE', CANVAS_W / 2, oy + 160);
+    ctx.fillText(isWin ? 'WIN' : 'LOSE', CANVAS_W / 2, pn.y + 150);
     ctx.fillStyle = '#444';
     ctx.font = '34px sans-serif';
-    ctx.fillText(`${bp.filledCount} / ${bp.total}`, CANVAS_W / 2, oy + 240);
-    ctx.font = '26px sans-serif';
-    ctx.fillText('Reload trang để chơi lại (restart tại chỗ = M3)', CANVAS_W / 2, oy + 300);
+    ctx.fillText(`${bp.filledCount} / ${bp.total}`, CANVAS_W / 2, pn.y + 225);
+    // Nút — rect dùng CHUNG với InputController hit-test (§A6, như UI_WOOD_BUTTON)
+    const rb = isWin ? UI_END_BUTTONS.restartWin : UI_END_BUTTONS.restartLose;
+    drawEndButton(ctx, rb, '#7a5230', 'CHƠI LẠI');
+    if (isWin) drawEndButton(ctx, UI_END_BUTTONS.next, '#2e7d32', 'MÀN TIẾP');
     ctx.textAlign = 'left';
   }
 
+  // --- M5: fade-in chuyển màn (loadLevel đặt fadeIn=0.4, Game tick) — vẽ TRÊN CÙNG ---
+  if (world.fadeIn > 0) {
+    ctx.fillStyle = `rgba(0,0,0,${Math.min(1, world.fadeIn / 0.4)})`;
+    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+  }
+
   ctx.restore();
+}
+
+// Nút graybox trên overlay WIN/LOSE (gọi khi ctx.textAlign = 'center')
+function drawEndButton(ctx, r, color, label) {
+  ctx.fillStyle = color;
+  roundRect(ctx, r.x, r.y, r.w, r.h, 18);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+  ctx.lineWidth = 3;
+  roundRect(ctx, r.x, r.y, r.w, r.h, 18);
+  ctx.stroke();
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 40px sans-serif';
+  ctx.fillText(label, r.x + r.w / 2, r.y + r.h / 2 + 14);
 }
 
 function roundRect(ctx, x, y, w, h, r) {

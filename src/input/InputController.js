@@ -3,7 +3,13 @@
 // TAP: hit-test UI CỐ ĐỊNH trước (nút kho — hệ screen) rồi tới world
 // (block grid/ô ảo = FETCH, ô xanh = PLACE — đổi hệ worldX = screenX + camera.x §A5).
 // 1 command/lúc, không hàng đợi: hải ly bận -> feedback "BUSY"; lệnh sai -> flash đỏ.
-import { CANVAS_W, CANVAS_H, TAP_THRESHOLD_PX, UI_WOOD_BUTTON } from '../core/constants.js';
+import {
+  CANVAS_W,
+  CANVAS_H,
+  TAP_THRESHOLD_PX,
+  UI_WOOD_BUTTON,
+  UI_END_BUTTONS,
+} from '../core/constants.js';
 import { State } from '../core/StateMachine.js';
 import { Command } from '../model/Command.js';
 import { cellKey } from '../model/Grid.js';
@@ -49,6 +55,7 @@ export class InputController {
     this.startX = p.x;
     this.startY = p.y;
     this.camStartX = this.game.world.camera.x;
+    this.downState = this.game.sm.state; // chốt state lúc BẮT ĐẦU nhấn (chống race WIN/LOSE nổ giữa chừng)
     if (this.canvas.setPointerCapture) this.canvas.setPointerCapture(e.pointerId);
   }
 
@@ -59,6 +66,8 @@ export class InputController {
       this.dragging = true; // vượt ngưỡng -> DRAG, nhả ra KHÔNG phát sinh lệnh (§A6)
     }
     if (this.dragging) {
+      // WIN/LOSE (M3): khóa pan — camera đang tự kéo về vùng sông chính
+      if (!this.game.sm.is(State.PLAYING)) return;
       this.game.world.camera.setX(this.camStartX - (p.x - this.startX));
     }
   }
@@ -76,8 +85,21 @@ export class InputController {
 
   _tap({ x, y }) {
     const game = this.game;
-    if (!game.sm.is(State.PLAYING)) return; // WIN/LOSE: dừng input
+    // Race guard (M3): WIN/LOSE có thể nổ GIỮA pointerdown và pointerup (auto slot-fill /
+    // nước đầy) mà nút overlay lại đè lên vùng grid — tap bắt đầu ở state khác thì NUỐT,
+    // không cho release ăn nhầm nút restart/next (mất màn WIN) hay lệnh world.
+    if (game.sm.state !== this.downState) return;
+    // WIN/LOSE (M3): khóa TOÀN BỘ input — chỉ hit-test nút trên overlay
+    if (game.sm.is(State.WIN) || game.sm.is(State.LOSE)) {
+      const isWin = game.sm.is(State.WIN);
+      const hit = (r) => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
+      if (hit(isWin ? UI_END_BUTTONS.restartWin : UI_END_BUTTONS.restartLose)) game.restart();
+      else if (isWin && hit(UI_END_BUTTONS.next)) game.nextLevel();
+      return;
+    }
+    if (!game.sm.is(State.PLAYING)) return; // LOADING/PAUSED: dừng input
     const world = game.world;
+    if (world.inputCooldown > 0) return; // vừa restart/next từ overlay — nuốt tap trớn
 
     // 1) UI cố định TRƯỚC (hệ screen — §A6): nút kho gỗ = thả gỗ (§A4.1)
     const wb = UI_WOOD_BUTTON;
@@ -119,8 +141,15 @@ export class InputController {
       return;
     }
     if (beaver.cell.col === col && beaver.cell.row === row) {
-      this._feedback(world, 'reject', x, y); // block hải ly đang đứng lên
-      return;
+      // v3.2 (chốt 2026-07-03): block ĐANG ĐỨNG nhặt được — hải ly tự NÉ sang block kề
+      // rồi nhặt (pathToAdjacent trả path tới block kề sẵn). Không có block kề (đảo 1 ô)
+      // -> từ chối như cũ: nhặt block dưới chân = tự rơi nước.
+      const canSideStep = [[1, 0], [-1, 0], [0, 1], [0, -1]]
+        .some(([dx, dy]) => world.grid.isOccupied(col + dx, row + dy));
+      if (!canSideStep) {
+        this._feedback(world, 'reject', x, y);
+        return;
+      }
     }
     if (!world.grid.reachableBlocks(beaver.cell).has(cellKey(col, row))) {
       this._feedback(world, 'reject', x, y); // khác island (§A4.4)

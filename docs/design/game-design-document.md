@@ -5,6 +5,8 @@
 > **v2.2 (2026-07-02):** + block tặng đầu màn + luật grid row dư (số hàng grid = hàng blueprint cần + 1).
 > **v3.0 (2026-07-03):** redesign điều khiển — bỏ kéo-thả & thu hồi; tap-based: kho→thả gỗ→nhặt→ô xanh; hải ly chỉ đi trên block; camera pan; khu khai thác 30s/block.
 > **v3.1 (2026-07-03):** gỗ neo = block hoàn chỉnh + tự lấp slot; nhặt-di-chuyển mọi block (relocate, không recall); ô ảo trên đập; rơi nước = thua; damage obstacle.
+> **v3.2b (2026-07-03):** REFRAME layout — sông hẹp giữa + 2 bờ rừng vừa 1 khung hình (theo ref art), BỎ camera pan ngang (thay điểm "camera pan" ở các bản trước). Mọi thứ trong 1 khung: bờ 175px mỗi bên, sông 730px giữa.
+> **v3.2 (2026-07-03):** amend v3.1 — chỗ nào mâu thuẫn, v3.2 THẮNG. (1) **Nhặt được CẢ block đang đứng:** click block hải ly đang đứng → hải ly tự **NÉ sang block kề** rồi quay lại nhặt; đảo 1 ô (không block kề) → từ chối. (2) **Dòng chảy theo mực nước + TRAVEL TIME là số config gốc:** mỗi màn quy định thời gian trôi spawn→điểm neo (`drift.travelSecStart`, vd 8s) → nước dâng làm thời gian **rút ngắn tuyến tính** tới sàn `travelSecMin` (vd 4s = dòng 2x); **vận tốc MỌI vật trôi trên sông (gỗ thả + obstacle) là số SUY RA** = quãng chuẩn ÷ travelSec — KHÔNG config px/s. (3) **Rock targeting:** obstacle PHÁ HỦY tự nhắm **lane nhiều block nhất** (grid + ô ảo), lane KHÓA ngay lúc telegraph (cảnh báo trung thực); hòa → lane index nhỏ; sông trống → lane schedule (trôi vô hại); gỗ trôi vẫn theo lane data. (4) **Layout:** đáy đập CỐ ĐỊNH y=1500 mọi level (originY = 1500 − rows·cellH), thác 1500→1920. (5) **End screen:** nút **Chơi lại** (restart tại chỗ) + **Màn tiếp** khi WIN (level cuối → chơi lại level cuối); WIN/LOSE khóa TOÀN BỘ input trừ nút overlay, camera tự kéo mượt về vùng sông chính; nước dâng chỉ thể hiện trên UI bar (không visual world).
 > **Scope:** MVP. Đã loại khỏi MVP: hệ thống kinh tế (coin/gem), skin trang phục, nâng cấp chỉ số, theme "Dung Nham", balance-tuning chi tiết.
 > **Nguồn:** GDD gốc + concept art người dùng + 6 vòng hỏi-đáp chốt cơ chế.
 > Ký hiệu: 🆕 = cơ chế mới bổ sung so với GDD gốc · ✅ = đã chốt · ⏳ = để lại, tôi sẽ đề xuất số liệu.
@@ -46,7 +48,7 @@ Người chơi vào vai một chú **hải ly nhỏ, hơi ngốc nghếch nhưng
    - 🆕✅ **Tự lấp slot (v3.1):** nếu ô neo **trúng ô blueprint slot** → **TỰ ĐỘNG lấp slot, +1 tiến độ, glow xanh** — KHÔNG cần hải ly. Blueprint có thể tự hoàn thành một phần nhờ may mắn random lane; vai trò hải ly = **SẮP XẾP LẠI** các block neo lệch chỗ.
    - Lane kín tới row 0 → gỗ mới neo **TIẾP lên ô ảo** vùng sông phía trên đập (§3.6) — không mất gỗ.
    - Gỗ **CHỈ mất** khi lane **HOÀN TOÀN hở** (không có block nào) → trôi xuống thác. Đây là **rủi ro có chủ đích**: nên chặn nhiều lane trước khi thả.
-2. **Nhặt (relocate):** 🆕✅ v3.1: click **BẤT KỲ block nào** trên grid/ô ảo (không chỉ gỗ neo — gồm cả block tặng, block đang lấp slot; TRỪ block hải ly đang đứng lên) → hải ly builder **bò** theo **mạng block** (§3.6) tới block kề → **nhặt lên** (carry). Nhặt block đang lấp slot → slot mở lại, **X giảm 1**. **Travel time vẫn là cơ chế cốt lõi** — bò xa thì lâu hơn. ✅
+2. **Nhặt (relocate):** 🆕✅ v3.1: click **BẤT KỲ block nào** trên grid/ô ảo (không chỉ gỗ neo — gồm cả block tặng, block đang lấp slot; 🆕 v3.2: gồm CẢ block hải ly đang đứng — hải ly tự **NÉ sang block kề** rồi nhặt; đảo 1 ô không có block kề → từ chối) → hải ly builder **bò** theo **mạng block** (§3.6) tới block kề → **nhặt lên** (carry). Nhặt block đang lấp slot → slot mở lại, **X giảm 1**. **Travel time vẫn là cơ chế cốt lõi** — bò xa thì lâu hơn. ✅
 3. **Sức mang:** ✅ **1 khúc/lần** (có thể mở rộng "capacity theo màn" sau ⏳). Đặt xong mới nhận lệnh kế — **không có hàng đợi lệnh**.
 4. **Chọn ô đặt (ô xanh):** khi đang carry, game **highlight Ô XANH** = mọi ô **TRỐNG kề cạnh (4 hướng)** với bất kỳ block nào hải ly **đi tới được** từ vị trí hiện tại (§3.6).
 5. **Đặt:** click 1 ô xanh → hải ly bò tới block kề ô đó → **đặt block xuống**. Đặt trùng slot blueprint → glow xanh, **+1 tiến độ**; không trùng → **tường tạm** (đồng thời **mở rộng mạng đi được**).
@@ -59,7 +61,7 @@ Người chơi vào vai một chú **hải ly nhỏ, hơi ngốc nghếch nhưng
 
 ### 3.4 Thu hồi VỀ KHO — ❌ ĐÃ BỎ · RELOCATE — 🆕✅ (v3.1, 2026-07-03)
 - ❌ **Thu hồi VỀ KHO đã bỏ** (v3.0): block **không bao giờ quay trở lại bộ đếm kho**.
-- 🆕✅ **RELOCATE (v3.1):** **MỌI block trên grid/ô ảo đều nhặt-di-chuyển được** — gỗ neo, block tặng, cả block đang lấp slot (nhặt lên thì slot mở lại, X giảm 1) — **TRỪ block hải ly đang đứng lên**. Quy trình: click block → hải ly bò tới nhặt (carry) → click ô xanh → đặt lại.
+- 🆕✅ **RELOCATE (v3.1):** **MỌI block trên grid/ô ảo đều nhặt-di-chuyển được** — gỗ neo, block tặng, cả block đang lấp slot (nhặt lên thì slot mở lại, X giảm 1) — 🆕 v3.2: **kể cả block hải ly đang đứng** (tự né sang block kề rồi nhặt; đảo 1 ô → từ chối). Quy trình: click block → hải ly bò tới nhặt (carry) → click ô xanh → đặt lại.
 - **Hệ quả (đảo lại kết luận v3.0):** counterplay bom nước **"nhặt block để mở lane cho bom trôi qua" HOẠT ĐỘNG TRỞ LẠI** (nhặt block lane đó lên, cầm trên tay hoặc đặt chỗ khác) → bom nước có **2 counter** (§6.1).
 
 ### 3.5 Block tặng đầu màn 🆕✅ (chốt 2026-07-02)
@@ -75,7 +77,7 @@ Người chơi vào vai một chú **hải ly nhỏ, hơi ngốc nghếch nhưng
 - **Luật ô xanh (khi đang carry):** highlight mọi ô **TRỐNG kề cạnh (4 hướng)** với bất kỳ block nào hải ly **đi tới được** từ vị trí hiện tại. Mỗi block đặt thêm (kể cả tường tạm) **mở rộng mạng** → mở thêm ô xanh mới.
 - 🆕✅ **Ô xanh CHỈ trong grid (v3.1, rows 0..N-1):** hải ly **KHÔNG đặt chủ động** lên vùng ô ảo — ô ảo chỉ hình thành từ gỗ neo tự nhiên.
 - 🆕✅ **Ô ẢO trên đập (v3.1):** lane kín tới row 0 → gỗ mới neo **TIẾP lên các Ô ẢO** vùng sông phía trên đập (row -1, -2, ... **không giới hạn**) — **không bao giờ mất gỗ khi lane có chặn**. Block ở ô ảo: **đi được, nhặt được, chặn obstacle**, nhưng **KHÔNG BAO GIỜ tính tiến độ** (nằm ngoài blueprint). Đá va vào **block mặt trước** (row nhỏ nhất) → block ô ảo **bị va TRƯỚC** = lá chắn hy sinh tự nhiên.
-- 🆕✅ **Block hải ly đang đứng lên:** KHÔNG nhặt được (§3.4).
+- 🆕✅ **Block hải ly đang đứng lên (v3.2):** NHẶT ĐƯỢC — hải ly tự **NÉ sang block kề** (bò 1 ô) rồi quay lại nhặt; **đảo 1 ô** (không có block kề để né) → từ chối (nhặt block dưới chân = tự rơi nước, §3.4).
 - **Island (mạng bị chia cắt):** obstacle (vd đá) phá block ở giữa → mạng tách thành các island; hải ly **kẹt trên island đang đứng**, chỉ nhặt/đặt được trong island đó. **Chấp nhận có chủ đích** — là chiều sâu chiến thuật: block tặng + tường tạm dùng để **nối mạng** lại.
 - 🆕✅ **RƠI NƯỚC = THUA NGAY (v3.1):** obstacle (vd đá) phá **block hải ly ĐANG ĐỨNG** → hải ly rơi xuống nước → **LOSE tức thì** (điều kiện thua mới — §12). Người chơi phải **bảo vệ chỗ đứng**.
 
@@ -161,7 +163,7 @@ Obstacle trôi theo từng lane từ trên xuống. **Luôn telegraph trước.*
 ### 7.2 Hành động ✅ (v3.0 — tap-based)
 | Hành động | Cơ chế |
 |---|---|
-| **Nhặt block (relocate)** 🆕 | 🆕 v3.1: click **BẤT KỲ block nào** trên grid/ô ảo (trừ block hải ly đang đứng; gỗ đang trôi không click được) → hải ly bò theo **mạng block** (§3.6) tới block kề → nhặt lên (carry, **1 khối/lần**, không hàng đợi). Nhặt block đang lấp slot → **X giảm 1**. |
+| **Nhặt block (relocate)** 🆕 | 🆕 v3.2: click **BẤT KỲ block nào** trên grid/ô ảo (kể cả block đang đứng — hải ly tự né sang block kề rồi nhặt; gỗ đang trôi không click được) → hải ly bò theo **mạng block** (§3.6) tới block kề → nhặt lên (carry, **1 khối/lần**, không hàng đợi). Nhặt block đang lấp slot → **X giảm 1**. |
 | **Đặt block (qua ô xanh)** 🆕 | Khi đang carry, click 1 **ô xanh** → hải ly bò tới block kề ô đó → đặt xuống. Trùng blueprint = +1 tiến độ; không trùng = tường tạm mở rộng mạng. |
 | **Ném đá** 🆕 | **Hành động miễn phí, có cooldown** (không giới hạn số lần). Dùng kích nổ bom nước từ xa. |
 

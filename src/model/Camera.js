@@ -1,20 +1,19 @@
-// model/Camera.js — camera.x + clamp pan ngang (§A6). Chỉ để XEM, không đổi logic.
-// worldW = 1080 + 2*forestW; camera.x ∈ [0, panLimit]; init = forestW (nhìn thẳng sông).
-// v2.1: kéo tự do trong limit, KHÔNG auto-return, KHÔNG nút recenter.
+// model/Camera.js — bố cục ngang (§A6, reframe 2026-07-03 theo ref):
+// SÔNG HẸP ở giữa + 2 BỜ RỪNG 2 bên VỪA TRONG 1 KHUNG HÌNH — KHÔNG pan.
+// forestW = bề rộng mỗi bờ trong khung; riverW = phần sông giữa = CANVAS_W − 2·forestW;
+// worldW = CANVAS_W (khít khung) → panLimit = 0 → camera cố định (Renderer translate = forestW).
 import { CANVAS_W } from '../core/constants.js';
 
 export class Camera {
-  constructor({ forestW = 450, panLimit = null } = {}) {
+  constructor({ forestW = 175 } = {}) {
     this.forestW = forestW;
-    this.worldW = CANVAS_W + 2 * forestW;
-    this.panLimit = this.worldW - CANVAS_W; // PHẢI = 2*forestW — loader tự derive (§D8)
-    if (panLimit != null && panLimit !== this.panLimit) {
-      console.warn(`[Camera] panLimit JSON (${panLimit}) != 2*forestW (${this.panLimit}) — dùng giá trị derive`);
-    }
-    this.x = forestW; // init: nhìn thẳng vùng sông
+    this.riverW = CANVAS_W - 2 * forestW; // vùng sông (grid nằm gọn trong đây)
+    this.worldW = CANVAS_W;
+    this.panLimit = 0; // mọi thứ trong 1 khung — không kéo ngang (ref 2026-07-03)
+    this.x = 0;        // cố định: translate = forestW − 0 = forestW (bờ trái lộ tại screen 0)
   }
 
   setX(v) {
-    this.x = Math.max(0, Math.min(this.panLimit, v));
+    this.x = Math.max(0, Math.min(this.panLimit, v)); // panLimit=0 → luôn 0
   }
 }

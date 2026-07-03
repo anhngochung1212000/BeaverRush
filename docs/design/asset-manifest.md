@@ -151,3 +151,20 @@ Phải nhìn **khác hẳn** bó gỗ xây đập. Trôi theo lane từ trên xu
 - **Asset-swap layer:** giữ đúng **key/filename** ở các bảng trên. Code load theo key; graybox là fallback tự vẽ khi thiếu file → thả art thật vào đúng đường dẫn là hiển thị ngay, không sửa logic.
 - **Anchor/pivot:** nhân vật & block neo ở **đáy-giữa** (bottom-center) để đặt đúng lane; obstacle neo **tâm** (center). Ghi chú pivot lệch chuẩn kèm theo file nếu có.
 - **Portable sang Unity:** giữ sprite rời + spritesheet + json để sau import thẳng vào Unity (Sprite / SpriteAtlas); tránh nướng hiệu ứng vào bg.
+
+---
+
+## MAPPING THỰC TẾ (chốt với user 2026-07-03 — manifest.js là nguồn chuẩn)
+
+| Key | File | Ghi chú |
+|---|---|---|
+| `bg_river` / `waterfall` / `ui_water_fill` | Enviroment/water.png | tile + cuộn theo dòng (drawTiledSprite) |
+| `ground` | Enviroment/Ground.png | CẢ 2 bờ — bờ PHẢI flip ngang lúc vẽ; neo mép đá (~78% bề ngang) vào mép sông, gradient nước chờm 90px |
+| `grass_sheet` | Enviroment/ChatGPT...10_09_18 AM.png | sheet 12 cụm cỏ — CẮT vùng bằng drawSpriteRegion (4 rect chọn tay trong forests.js) |
+| `tree_full_a/b`, `tree_gnawed`, `tree_falling`, `tree_stump`, `tree_log` | Tree/*.png | cây rừng 2 bờ + CHU TRÌNH TRẠI KHAI THÁC theo stock.timer (nguyên→gặm→đổ→gốc+khúc gỗ); thợ = 1 hải ly anim beaver_crawl (không có sprite thợ riêng) |
+| `block_1x1` / `block_carried` / `float_log` | Obstacle/wood.png | 1 ảnh kiêm 3 vai — gỗ neo convert thành block nên cùng hình |
+| `rock_big` | Obstacle/rock.png | đá lớn obstacle |
+| `beaver_idle` (4f) / `beaver_crawl` (5f) | Beaver/*.png | builder + tái dụng làm thợ gặm ở camp |
+| — | Tree/trees_preview.png | sheet tham khảo, KHÔNG dùng runtime (không alpha) |
+| CHƯA CÓ ART (graybox) | — | telegraph, ui_wood_button, ui_progress, panel_win, panel_lose |
+| KHÔNG DÙNG | Enviroment/ChatGPT...09_59_11 AM.png | dải rừng+bờ đá (bị thay bằng Ground.png theo chốt user) |

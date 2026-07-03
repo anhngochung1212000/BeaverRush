@@ -60,3 +60,39 @@ When spawning subagents (Agent/Task tool), the routing block is automatically in
 | `ctx stats` | Call the `ctx_stats` MCP tool and display the full output verbatim |
 | `ctx doctor` | Call the `ctx_doctor` MCP tool, run the returned shell command, display as checklist |
 | `ctx upgrade` | Call the `ctx_upgrade` MCP tool, run the returned shell command, display as checklist |
+
+---
+
+# Luật riêng dự án BeaverRush
+
+> Nguyên tắc chung (nghĩ trước khi code, đơn giản trước, sửa có phẫu thuật,
+> mục tiêu verify được) nằm ở `~/.claude/CLAUDE.md` — áp dụng mọi project.
+> Dưới đây chỉ là phần ĐẶC THÙ của repo này.
+
+## Docs đi cùng code (BẮT BUỘC)
+Chốt/đổi cơ chế gameplay → cập nhật CẢ 3 tài liệu trong `docs/design/` CÙNG LƯỢT với code:
+1. `game-design-document.md` — thêm changelog `vX.Y` (format: amend, "chỗ nào mâu thuẫn bản mới THẮNG") + sửa các câu khẳng định sai trong section liên quan. Mạch version v3.x.
+2. `prototype-plan.md` — thêm changelog (mạch v2.x, ĐỘC LẬP với GDD) + sửa số liệu §D1/§D3/§D6; JSON §D8 phải khớp `src/config/levels.js` từng field.
+3. `progress-checklist.md` — mục milestone + section "Thiết kế đã chốt" (đánh dấu 🆕 kèm ngày).
+
+## Verify pipeline (loop tới khi pass hết)
+1. `node tests/smoke.mjs` pass 100% — cơ chế mới PHẢI kèm assertion mới; test cũ giả định
+   "sông sạch" phải tắt schedule obstacle qua helper `noSchedule` (bài học: schedule M4 từng phá ngầm test M2).
+2. E2E browser qua preview server (`npx http-server -p 8123`, config `.claude/launch.json`) —
+   thay đổi liên quan input phải test bằng PointerEvent THẬT, không gọi tắt hàm.
+3. Console browser sạch (không error/warning).
+
+## Kiến trúc & style (port Unity sau này)
+- Tách 3 tầng NGHIÊM: `model/` = data thuần (không đụng canvas) · `systems/` = logic ·
+  `render/` chỉ ĐỌC model, không ghi. Input ra lệnh qua `world.pendingCommand`.
+- MỌI lệnh vẽ đi qua `drawSprite`/`drawTiledSprite` (asset-swap layer) — thêm visual mới
+  = thêm key + GRAYBOX fallback, KHÔNG vẽ trực tiếp.
+- Comment tiếng Việt, kèm tham chiếu spec (§A4.1, §D6, M3...) như code hiện có.
+- Số liệu gameplay = data-driven trong `src/config/levels.js` (per level) hoặc
+  `src/core/constants.js` (toàn cục), đánh dấu tunable — KHÔNG hardcode rải trong system.
+- State phải reset được qua `loadLevel` (nằm trong `world`, không giữ trong system instance) —
+  restart tại chỗ là tính năng cốt lõi.
+
+## Scope prototype (STRICT — theo GDD)
+Chỉ block 1x1 + 2 obstacle (đá, gỗ trôi). ĐÃ LOẠI: bom nước, xoáy nước, tool, skill,
+economy, size lớn — KHÔNG tự thêm khi chưa được yêu cầu.
