@@ -6,9 +6,9 @@ import { drawSprite } from '../drawSprite.js';
 export function drawObstacles(ctx, store, world) {
   const g = world.grid;
 
-  // --- Đá lớn — tâm lane, footprint hình ảnh ~1 ô ---
-  const w = 170;
-  const h = 140;
+  // --- Đá lớn — tâm lane, footprint hình ảnh ~1 ô (concept-match: vừa lane 140, aspect rock.png 1.5) ---
+  const w = 126;
+  const h = 84;
   for (const ob of world.obstacles) {
     if (!ob.alive) continue;
     const cx = g.laneCenterX(ob.lane);

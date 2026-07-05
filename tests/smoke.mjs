@@ -35,13 +35,13 @@ console.log('# 1. Loader v2.1 (§D8)');
 ok(w.stock.count === 3 && w.stock.intervalSec === 30, 'wood.left: startingStock 3, intervalSec 30');
 ok(w.camera.forestW === 175 && w.camera.riverW === 730 && w.camera.panLimit === 0 && w.camera.x === 0, 'camera reframe: forestW 175, riverW 730, KHÔNG pan (panLimit 0, x 0)');
 ok(w.levelData.floatingLog.spawnY === -150 && w.driftCfg.travelSecStart === 8 && w.driftCfg.travelSecMin === 4, 'drift config M3.1: spawnY -150, travel 8s -> sàn 4s');
-ok(w.driftRefDist === 1425 && Math.abs(w.driftSpeedPx - 1425 / 8) < 1e-9, 'quãng chuẩn 1425px (spawn -> tâm ô neo row 0), v đầu màn = 178.125px/s');
+ok(w.driftRefDist === 1500 && Math.abs(w.driftSpeedPx - 1500 / 8) < 1e-9, 'quãng chuẩn 1500px (spawn -150 -> tâm ô neo row 0 = 1350; cellH 100), v đầu màn = 187.5px/s');
 ok(aliveBlocks() === 2 && w.grid.isOccupied(2, 1) && w.grid.isOccupied(3, 1), 'starter blocks (2,1)(3,1)');
 
 console.log('# 2. Release -> anchor -> AUTO SLOT-FILL (lane 2 có starter, slot row 0)');
 ok(FloatingLogSystem.release(w, 2) === true, 'release lane 2 (override test hook)');
 ok(w.stock.count === 2, 'kho -1 tại thời điểm thả');
-step(9); // quãng -150 -> tâm ô (2,0)=1275: 1425px, travelSecStart 8s (nước mới dâng ~0 -> ~7.9s thực tế)
+step(9); // quãng -150 -> tâm ô (2,0)=1350: 1500px, travelSecStart 8s (nước mới dâng ~0 -> ~7.9s thực tế)
 ok(w.floatingLogs.length === 0, 'log đã neo (hết DRIFTING)');
 ok(w.grid.blockIdAt(2, 0) !== null, 'neo = Block hoàn chỉnh tại (2,0) — ô ngay thượng lưu starter');
 ok(w.blueprint.filledCount === 1, 'AUTO SLOT-FILL: trúng slot row 0 -> X = 1, không cần hải ly');

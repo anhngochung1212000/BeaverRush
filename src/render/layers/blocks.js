@@ -2,7 +2,7 @@
 // row âm (cellToScreen dùng chung công thức, row âm -> y < originY §A5).
 // Đúng blueprint / auto slot-fill = glow xanh; ngoài blueprint = nâu thường (§C3).
 // + pulse glow tạm (world.effects) khi slot vừa được lấp.
-import { drawSprite } from '../drawSprite.js';
+import { drawWoodSlice } from '../drawSprite.js';
 
 export function drawBlocks(ctx, store, world) {
   const g = world.grid;
@@ -14,7 +14,9 @@ export function drawBlocks(ctx, store, world) {
     const h = g.cellH;
 
     if (store.has('block_1x1')) {
-      drawSprite(ctx, store, 'block_1x1', x, y, w, h);
+      // Lát ngang theo CỘT (helper drawWoodSlice, dùng chung với gỗ trôi): 5 lát của lõi gỗ
+      // trải đều 5 lane -> vân gỗ chạy liền qua đập, và gỗ trôi lane L == block cột L.
+      drawWoodSlice(ctx, store, 'block_1x1', block.col, g.cols, x, y, w, h);
     } else {
       // graybox §C3: rect #a9772f + label "1x1"
       ctx.fillStyle = '#a9772f';

@@ -17,26 +17,36 @@ const GRASS = [
 
 // Cây + cỏ rải trên bờ (toạ độ theo TỈ LỆ bề rộng dải [0..1] để forestW đổi không vỡ layout;
 // y tuyệt đối; vẽ theo thứ tự = painter's order)
+// Rừng RẬM theo concept: cây dày xen kẽ 2 biến thể + cỏ + KHÚC GỖ NẰM rải trên bờ
 const LEFT_DECOR = [
+  { kind: 'tree', key: 'tree_full_a', fx: 0.65, y: 190, w: 100 },
   { kind: 'tree', key: 'tree_full_b', fx: 0.12, y: 300, w: 110 },
   { kind: 'grass', g: 0, fx: 0.55, y: 380, w: 150 },
   { kind: 'tree', key: 'tree_full_a', fx: 0.42, y: 520, w: 130 },
+  { kind: 'tree', key: 'tree_log', fx: 0.6, y: 620, w: 120 }, // khúc gỗ nằm (concept: đống gỗ bờ trái)
   { kind: 'tree', key: 'tree_full_b', fx: 0.1, y: 750, w: 120 },
-  { kind: 'grass', g: 2, fx: 0.5, y: 820, w: 140 },
+  { kind: 'tree', key: 'tree_full_a', fx: 0.68, y: 800, w: 105 },
+  { kind: 'grass', g: 2, fx: 0.35, y: 830, w: 140 },
   // khoảng y 880-1200 chừa cho TRẠI KHAI THÁC (vẽ riêng bên dưới)
+  { kind: 'tree', key: 'tree_log', fx: 0.25, y: 1290, w: 115 },
   { kind: 'grass', g: 1, fx: 0.6, y: 1330, w: 150 },
   { kind: 'tree', key: 'tree_full_a', fx: 0.15, y: 1520, w: 125 },
-  { kind: 'tree', key: 'tree_full_b', fx: 0.5, y: 1760, w: 115 },
+  { kind: 'tree', key: 'tree_full_b', fx: 0.62, y: 1600, w: 110 },
+  { kind: 'tree', key: 'tree_full_b', fx: 0.5, y: 1790, w: 115 },
 ];
 const RIGHT_DECOR = [
-  { kind: 'tree', key: 'tree_full_a', fx: 0.55, y: 280, w: 125 },
+  { kind: 'tree', key: 'tree_full_b', fx: 0.2, y: 200, w: 105 },
+  { kind: 'tree', key: 'tree_full_a', fx: 0.55, y: 300, w: 125 },
   { kind: 'grass', g: 3, fx: 0.2, y: 400, w: 150 },
   { kind: 'tree', key: 'tree_full_b', fx: 0.25, y: 560, w: 115 },
-  { kind: 'tree', key: 'tree_full_a', fx: 0.6, y: 860, w: 135 },
+  { kind: 'tree', key: 'tree_log', fx: 0.5, y: 680, w: 115 },
+  { kind: 'tree', key: 'tree_full_a', fx: 0.6, y: 880, w: 135 },
   { kind: 'grass', g: 0, fx: 0.25, y: 980, w: 140 },
-  { kind: 'tree', key: 'tree_full_b', fx: 0.55, y: 1280, w: 120 },
-  { kind: 'grass', g: 2, fx: 0.3, y: 1420, w: 150 },
+  { kind: 'tree', key: 'tree_full_b', fx: 0.15, y: 1120, w: 110 },
+  { kind: 'tree', key: 'tree_full_a', fx: 0.55, y: 1300, w: 120 },
+  { kind: 'grass', g: 2, fx: 0.3, y: 1430, w: 150 },
   { kind: 'tree', key: 'tree_full_a', fx: 0.3, y: 1700, w: 130 },
+  { kind: 'tree', key: 'tree_full_b', fx: 0.65, y: 1810, w: 110 },
 ];
 
 // Tỉ lệ khung hình gốc từng sprite (w/h) — giữ aspect khi chỉ cho bề rộng
@@ -57,6 +67,12 @@ export function drawForests(ctx, store, world) {
   drawBankGround(ctx, store, -f, f, false); // bờ TRÁI: mép nước tại x=0
   drawBankGround(ctx, store, riverW, f, true); // bờ PHẢI: flip — mép nước tại x=riverW
 
+  // Overlay TỐI trầm cho 2 bờ — kéo tông về "vách đá canyon" như concept (INTERIM: chờ asset
+  // vách đá tối riêng §7; cây vẽ SAU nên không bị ám tối, nổi rõ trên nền bờ trầm)
+  ctx.fillStyle = 'rgba(10,16,24,0.42)';
+  ctx.fillRect(-f, 0, f, CANVAS_H);
+  ctx.fillRect(riverW, 0, f, CANVAS_H);
+
   // --- Cây + cỏ rải ---
   drawDecor(ctx, store, LEFT_DECOR, -f, f);
   drawDecor(ctx, store, RIGHT_DECOR, riverW, f);
@@ -70,8 +86,11 @@ export function drawForests(ctx, store, world) {
 // ĐIỂM MÉP ĐÁ (WATER_EDGE_FRAC) nằm đúng mép sông -> dải bờ hiển thị đất + đá;
 // phần gradient nước CHỜM OVERHANG px vào sông (đè bg_river tạo fade tự nhiên).
 // flip=true: bờ PHẢI lật ngang quanh mép sông.
-const WATER_EDGE_FRAC = 0.78; // tỉ lệ bề ngang ảnh nơi hết đá / bắt đầu nước (tinh chỉnh theo art)
-const OVERHANG = 90;          // px gradient nước chờm vào sông
+// Ground.png: đất/đá ĐỤC 0..~0.76, rìa SÁNG ~0.78, TRONG SUỐT từ ~0.80.
+// Anchor vào 0.76 (đá tối đục) + OVERHANG 0 -> đá tối kéo SÁT mép nước, không lộ rìa sáng
+// hay dải bán trong suốt chờm lên sông (fix khe hở 2026-07-04).
+const WATER_EDGE_FRAC = 0.76;
+const OVERHANG = 0;
 
 function drawBankGround(ctx, store, x, w, flip) {
   if (!store.has('ground')) {
@@ -145,14 +164,20 @@ function drawCamp(ctx, store, world, campX, baseY) {
     ctx.restore();
   }
 
-  // Progress block gỗ kế tiếp vào kho (giữ từ graybox cũ — đọc nhịp 30s bằng mắt)
+  // Progress block gỗ kế tiếp vào kho — thanh XANH LÁ bo tròn (concept art)
   ctx.save();
-  ctx.fillStyle = 'rgba(255,255,255,0.85)';
-  ctx.font = '24px sans-serif';
-  ctx.fillText('MINING CAMP', campX - 90, baseY + 34);
-  ctx.fillStyle = 'rgba(0,0,0,0.45)';
-  ctx.fillRect(campX - 90, baseY + 44, 200, 14);
-  ctx.fillStyle = '#e0b34c';
-  ctx.fillRect(campX - 90, baseY + 44, 200 * frac, 14);
+  const bw = 150;
+  const bx = campX - bw / 2;
+  const by = baseY + 26;
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.beginPath();
+  ctx.roundRect(bx - 3, by - 3, bw + 6, 22, 11);
+  ctx.fill();
+  if (frac > 0.02) {
+    ctx.fillStyle = '#6abf3a';
+    ctx.beginPath();
+    ctx.roundRect(bx, by, bw * frac, 16, 8);
+    ctx.fill();
+  }
   ctx.restore();
 }

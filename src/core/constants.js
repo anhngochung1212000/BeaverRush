@@ -27,8 +27,8 @@ export const CAMERA_RETURN_RATE = 6;
 // Tốc độ cuộn texture nước xuôi dòng (px/s, visual thuần — chậm hơn hẳn gỗ trôi
 // 350px/s để tạo cảm giác parallax; tunable)
 export const RIVER_FLOW_PX_PER_SEC = 60;
-// Thác dưới đập: nước rơi nhanh hơn mặt sông (tunable)
-export const WATERFALL_FLOW_PX_PER_SEC = 240;
+// Thác cuộn XUỐNG nhanh (chảy mạnh) — px/s nhân flowFactor (tunable)
+export const FALL_SCROLL_PX_PER_SEC = 700;
 
 // Fixed timestep cho logic (§A2.2)
 export const FIXED_DT = 1 / 60;   // giây

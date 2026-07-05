@@ -2,7 +2,8 @@
 // Data COPY NGUYÊN VĂN từ prototype-plan.md §D8 v2.1 — KHÔNG tự chế số liệu.
 // NGOẠI LỆ (user chốt 2026-07-03): originY đặt sao cho ĐÁY ĐẬP = 1500 mọi level
 // (originY = 1500 - rows*cellH) — thác cố định 1500->1920, grid "kéo xuống theo".
-// Level 0: 900 -> 1200; level 1 giữ 900 (4 hàng đã kết thúc đúng 1500).
+// 2026-07-04 (concept-match): cellH 150 -> 100 — block BẸT theo tỉ lệ bó gỗ wood.png
+// (1.5:1), các hàng đập khít như concept; originY suy lại (lv0 1300, lv1 1100).
 // Field -> system mapping (v2.1):
 //   grid -> Grid (toạ độ hệ SÔNG; world offset +forestW khi render/input §A5);
 //   camera -> Camera (forestW = bề rộng mỗi bờ; sông hẹp giữa vừa 1 khung, KHÔNG pan — reframe 2026-07-03);
@@ -26,7 +27,7 @@ export const levels = [
   {
     "id": "ch1_lvl1_thang",
     "name": "Suối Xanh 1 - Thẳng",
-    "grid": { "cols": 5, "rows": 2, "cellW": 140, "cellH": 150, "originX": 15, "originY": 1200 },
+    "grid": { "cols": 5, "rows": 2, "cellW": 140, "cellH": 100, "originX": 15, "originY": 1300 },
     "camera": { "forestW": 175 },
     "blueprint": {
       "slots": [
@@ -70,7 +71,7 @@ export const levels = [
   {
     "id": "ch1_lvl2_chu_u",
     "name": "Suối Xanh 2 - Chữ U",
-    "grid": { "cols": 5, "rows": 4, "cellW": 140, "cellH": 150, "originX": 15, "originY": 900 },
+    "grid": { "cols": 5, "rows": 4, "cellW": 140, "cellH": 100, "originX": 15, "originY": 1100 },
     "camera": { "forestW": 175 },
     "blueprint": {
       "slots": [
